@@ -145,6 +145,12 @@ the same executable in session mode; the workers are its children.
   second build is a different build number, a different runner image and
   bytes no test ever ran against. The workflow stays named `Release` —
   `pages.yml` watches for it. Tag a commit only after its CI run passed.
+  `codemagic.yaml` runs the same Makefile targets on a hosted Mac as a second
+  machine to install and review; its packages are never what `release.yml`
+  publishes, for the reason just stated. Both builders name the Xcode that
+  reaches `IOS_SDK_TIER` and then assert it with `make sdk-tier` rather than
+  trusting an image's default, so neither can ship a package linked against a
+  tier no device expects.
 - **The release notes are a file in the repo**, `<docs>/Releases/<version>.md`,
   written before the tag. One headline sentence saying what this release
   does, one bullet per user-visible change in the user's words with the
@@ -3195,6 +3201,10 @@ Documents/               Icon/ (the .icon source, in no target), Site/ (Pages), 
                          the replay sanitiser),
                          Schemas/
 manifest.json            the owngoal-packages entry
+.github/workflows/       ci.yml (build, package, verify), release.yml (publish CI's artifact on a
+                       tag, compile nothing), pages.yml (the site)
+codemagic.yaml           the same pipeline on Codemagic: the packages and checksums as build
+                       artifacts, publishing left to GitHub
 ```
 
 ## Build & verify
@@ -3221,6 +3231,13 @@ manifest.json            the owngoal-packages entry
   `let` first).
 - `make build` — unsigned app, daemon and workers for iPhoneOS.
 - `make deb` / `make deb-all` — roothide and rootless packages, verified.
+- **Packages from a hosted Mac** — a push to `main` runs `ci.yml` on the
+  GitHub-hosted `xcode-27` image (Xcode 27.1 by name, the iOS 27.1 SDK the
+  packages are linked against); its artifact `apelin-<sha>` carries both
+  flavours, every extension package, the dSYMs and `SHA256SUMS`. Add the
+  repository in Codemagic and pick `codemagic.yaml` for the same run there,
+  exported as that build's artifacts. Neither is a publisher: `release.yml`
+  takes CI's artifact of the tagged commit.
 - Packages go onto a device through Irisin's installer (`irisin-cli install
   --yes <deb>`, as root), never apt or dpkg; `install-device.sh` and
   `device.py install` do so.

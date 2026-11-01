@@ -170,6 +170,9 @@ platformize-app-ios's; the quoted name is its section.
 - [x] The SDK the app is linked against is chosen, `make build` refuses an older one, the packager reads it back from the app it ships, and CI selects that Xcode by name.
       iphone-duo-readiness, "Establish the baseline": the SDK, not the floor, decides how an iPhone Duo lays the app out.
       **Done:** iOS 27.1 (`IOS_SDK_TIER`, `AGENTS.md` ▸ Decisions ▸ The SDK tier); CI on the `xcode-27` image with Xcode 27.1.
+- [x] A second machine may build the packages, and it is not a publisher.
+      SKILL.md "Publishing": the published bytes come from the one build CI verified.
+      **Done:** `codemagic.yaml` (owner, 2026-11-01) runs the same Makefile targets on a hosted Mac and exports the packages, the dSYMs and `SHA256SUMS` as that build's artifacts. `release.yml` still takes CI's `apelin-<sha>`; nothing publishes from Codemagic. Both builders name the Xcode at `IOS_SDK_TIER` and assert it with `make sdk-tier`.
 - [x] The release workflow is named `Release`, shaped test ‖ compile → release, and publishes one dSYM zip per build listed in `SHA256SUMS`.
       SKILL.md "Publishing"; "Native Depiction".
       **Done:** Named `Release`; CI's test ‖ build, then Release publishes; one dSYM zip in `SHA256SUMS`.

@@ -1,0 +1,120 @@
+# Apelin on Codemagic: build and package the Debian files on a hosted Mac.
+#
+# The byte-for-byte same pipeline as `.github/workflows/ci.yml`: the checklist
+# and every gate (`make check`, the first thing `build` runs), the host tests
+# (`make harness`), then both bootstraps' IDE packages and every extension
+# package, each read back and verified (`make deb-all`). Codemagic adds nothing
+# to the process and changes no rule: it is a second machine that runs it.
+#
+# What ships is still decided by GitHub. `release.yml` publishes the artifact
+# of the tagged commit's CI run and compiles nothing itself, so a Codemagic
+# package is never the published bytes — it is what you install to test, review
+# or hand to someone before the tag. Same reason CI has to build in the first
+# place: a second build is a different build number and a different image.
+#
+# Nothing here needs an Apple developer account or a signing certificate:
+# `xcodebuild` runs with code signing off, and the packager ad-hoc signs
+# everything with `ldid`, which is what a jailbroken device expects.
+#
+# First run: add the repository in the Codemagic UI and pick this file. The
+# instance and the Xcode version below are the two things to adjust if
+# Codemagic reports they are unavailable — the build then says so at once,
+# because `make sdk-tier` refuses an iPhoneOS SDK older than the tier in the
+# Makefile rather than shipping a package linked against something else.
+
+workflows:
+  apelin-deb:
+    name: Apelin Debian packages (roothide and rootless)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+
+    environment:
+      # The iPhoneOS SDK the packages are linked against: `IOS_SDK_TIER` in
+      # the Makefile, which decides how an iPhone Duo lays the app out. Pinned
+      # rather than `latest` so an image update cannot silently retarget them.
+      xcode: "27.1"
+      vars:
+        DERIVED: /private/tmp/apelin-deriveddata
+        PACKAGES: build/Packages
+
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    scripts:
+      - name: Install packaging dependencies
+        script: |
+          set -euo pipefail
+          formulae=()
+          command -v dpkg-deb >/dev/null 2>&1 || formulae+=(dpkg)
+          command -v ldid    >/dev/null 2>&1 || formulae+=(ldid)
+          command -v zstd    >/dev/null 2>&1 || formulae+=(zstd)
+          if (( ${#formulae[@]} > 0 )); then
+            brew install "${formulae[@]}"
+          fi
+
+      # The same ten lines in `ci.yml`: name the pinned Xcode, and if the image
+      # no longer carries it, take whichever installed one reaches the SDK tier
+      # instead of failing on a path. `xcode-select` is machine-wide, so the
+      # choice holds for the steps that follow.
+      - name: Select an Xcode at the SDK tier
+        script: |
+          set -euo pipefail
+          if ! make --no-print-directory sdk-tier > /dev/null 2>&1; then
+            for app in /Applications/Xcode*.app; do
+              if DEVELOPER_DIR="$app/Contents/Developer" make --no-print-directory sdk-tier > /dev/null 2>&1; then
+                sudo xcode-select -s "$app/Contents/Developer"
+                break
+              fi
+            done
+          fi
+          xcodebuild -version
+          make --no-print-directory sdk-tier
+
+      # Seconds, where the build takes minutes: a broken host test says so long
+      # before the packages would. `check` and `checklist` run inside the build
+      # step below, as they do in the Makefile's own dependency graph.
+      - name: Host tests
+        script: |
+          set -euo pipefail
+          make harness SWIFTPM_SCRATCH="$DERIVED/spm"
+
+      # Both layouts share the one build; only the packaging differs. Then the
+      # development extensions, the agent tool extensions and the GPL
+      # assembler's corresponding-source archive, into `$PACKAGES`.
+      - name: Build, package and verify the IDE and every extension
+        script: |
+          set -euo pipefail
+          make deb-all CONFIGURATION=Release SKIP_HARNESS=1 \
+            DERIVED_DATA="$DERIVED" \
+            BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD)}"
+
+      # Neither strip nor `ldid` touches LC_UUID, so one set of dSYMs matches
+      # every shipped binary of both flavours, and a crash on a device is
+      # symbolicable with it.
+      - name: Archive dSYMs
+        script: |
+          set -euo pipefail
+          version="$(make --no-print-directory print-version)"
+          packages="$(pwd)/$PACKAGES"
+          cd "$DERIVED/Build/Products/Release-iphoneos"
+          zip -qry "$packages/Apelin_${version}_dSYMs.zip" ./*.dSYM
+
+      - name: Write checksums
+        script: |
+          set -euo pipefail
+          cd "$PACKAGES"
+          shasum -a 256 ./*.deb ./*_source.tar.xz ./*_dSYMs.zip ./*_Templates.tar.zst > SHA256SUMS
+          cat SHA256SUMS
+
+    artifacts:
+      - build/Packages/*.deb
+      - build/Packages/*_source.tar.xz
+      - build/Packages/*_dSYMs.zip
+      - build/Packages/*_Templates.tar.zst
+      - build/Packages/SHA256SUMS

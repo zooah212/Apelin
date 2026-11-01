@@ -31,7 +31,10 @@ env:
 # Both jobs run on the Xcode 27 image, the one with the iOS 27.1 SDK the
 # packages are linked against (`IOS_SDK_TIER` in the Makefile: the tier an
 # iPhone Duo runs edge to edge, with vertical bars). Its default Xcode may be
-# newer than 27.1, so 27.1 is named rather than the newest found.
+# newer than 27.1, so 27.1 is named rather than the newest found, and the tier
+# is asserted afterwards: should the image drop that Xcode, the job takes any
+# installed one whose iPhoneOS SDK reaches the tier, and fails loudly when none
+# does, rather than shipping packages linked against a tier no device expects.
 jobs:
   # Seconds, where the build takes minutes, so a broken host test says so
   # long before the packages would.
@@ -48,9 +51,20 @@ jobs:
 
       - name: Select Xcode 27.1
         run: |
-          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          set -euo pipefail
+          if [ -d /Applications/Xcode_27.1.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          fi
+          if ! make --no-print-directory sdk-tier > /dev/null 2>&1; then
+            for app in /Applications/Xcode*.app; do
+              if DEVELOPER_DIR="$app/Contents/Developer" make --no-print-directory sdk-tier > /dev/null 2>&1; then
+                sudo xcode-select -s "$app/Contents/Developer"
+                break
+              fi
+            done
+          fi
           xcodebuild -version
-          echo "iPhoneOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+          make --no-print-directory sdk-tier
 
       - name: Run host tests
         run: make harness SWIFTPM_SCRATCH="$RUNNER_TEMP/apelin-spm"
@@ -74,9 +88,20 @@ jobs:
 
       - name: Select Xcode 27.1
         run: |
-          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          set -euo pipefail
+          if [ -d /Applications/Xcode_27.1.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          fi
+          if ! make --no-print-directory sdk-tier > /dev/null 2>&1; then
+            for app in /Applications/Xcode*.app; do
+              if DEVELOPER_DIR="$app/Contents/Developer" make --no-print-directory sdk-tier > /dev/null 2>&1; then
+                sudo xcode-select -s "$app/Contents/Developer"
+                break
+              fi
+            done
+          fi
           xcodebuild -version
-          echo "iPhoneOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+          make --no-print-directory sdk-tier
 
       - name: Install packaging dependencies
         shell: bash
