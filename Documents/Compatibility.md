@@ -136,7 +136,7 @@ and loaded there.
 The default source contains these 23 complete SDKs. SDKs 13.0–14.4 are
 excluded because their source trees lack the C++ standard-library headers.
 The SDKs themselves are unchanged. This matrix covers roothide; a rootless
-end-to-end device run and an iOS 16 physical host remain untested.
+end-to-end device run and an iOS 15 physical host remain untested.
 
 ## Where the data lives and how to update it
 

@@ -16,7 +16,7 @@ repository_root="$(cd -- "$extension_root/../../.." && pwd -P)"
 output_directory="${1:-$extension_root/build/Packages}"
 scratch_path="${SCRATCH_PATH:-/private/tmp/apelin-agent-tools-spm}"
 configuration="${CONFIGURATION:-Release}"
-deployment_target=16.0
+deployment_target=15.0
 
 for required in dpkg-deb ldid; do
     command -v "$required" >/dev/null || {

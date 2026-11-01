@@ -350,7 +350,7 @@
       "sha256": "cc59ff976bc639612b7f2e92c6ecfad42e93b70099c7b950acd1b3651def10ab",
       "license": "MIT"
     },
-    "markdownview/LICENSE": {
+    "vendored/MarkdownView": {
       "sha256": "7daf1f9f7da3de2efdcc68e9df14598387faa0f1df63c48ff88e2780e8efc227",
       "license": "MIT (MarkdownView), with MIT for swift-markdown-ui"
     },

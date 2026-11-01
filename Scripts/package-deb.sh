@@ -40,13 +40,16 @@ workers=(apelin-environment apelin-build apelin-agent apelin-diagnostics apelin-
 # to the workers. KWWKAI's model catalogue is the one apelin-agent needs; a
 # missing one is a fatalError on the first session.
 worker_resources=(kwwk_KWWKAI.bundle)
-# Back-deployed Swift runtime libraries a worker links by @rpath. Xcode embeds
-# them into an app bundle only, never beside a command-line tool, so the
-# toolchain's copy is installed next to the workers and signed like them. The
-# tool targets' rpaths are /usr/lib/swift first, then @executable_path: the
-# OS copy wins where the OS has one (libswiftCompatibilitySpan from iOS 26),
-# and iOS 16–18 load this one. Without it apelin-agent dies in dyld there.
-worker_runtime_libraries=(libswiftCompatibilitySpan.dylib)
+# Back-deployed Swift runtime libraries a command-line tool links by @rpath.
+# Xcode embeds them into an app bundle only, never beside a command-line tool,
+# so the toolchain's copy of each is installed next to the workers and signed
+# like them. The tool targets' rpaths are /usr/lib/swift first, then
+# @executable_path: the OS copy wins where the OS has one (libswiftCompatibilitySpan
+# from iOS 26), and a device at the floor loads this one. Without it apelin-agent
+# dies in dyld there. Which libraries that is follows from the floor — a floor
+# of iOS 15 back-deploys more of them than a floor of iOS 16 — so the list is
+# read off the built binaries below rather than written down here.
+worker_runtime_libraries=()
 packaging_root="$(cd "$(dirname "$control_template")/.." && pwd -P)"
 # Sourced by the bootstrap's /etc/profile after it sets PATH anew: puts the
 # toolchain Apelin's terminal named in APELIN_TOOLCHAIN_BIN back in front.
@@ -75,24 +78,76 @@ for worker in "${workers[@]}"; do
     [[ -f "$packaging_root/Workers/$worker.entitlements" ]] || { echo "error: Packaging/Workers/$worker.entitlements is missing" >&2; exit 66; }
 done
 swift_toolchain_lib="$(dirname "$(xcrun --sdk iphoneos --find swiftc)")/../lib"
-runtime_library_source() {
-    local library="$1" candidates
+# The deployment floor a Mach-O was built for: its own LC_BUILD_VERSION minos.
+# A fat file answers for its first iOS slice, which is the only slice here.
+macho_min_os() {
+    otool -l "$1" | awk '
+        $1 == "cmd" { command = $2 }
+        command == "LC_BUILD_VERSION" && $1 == "platform" && ($2 == "IOS" || $2 == "2") { ios = 1 }
+        command == "LC_BUILD_VERSION" && ios && $1 == "minos" { print $2; exit }'
+}
+# Every @rpath library a shipped command-line tool needs. otool -L does not
+# mark a dependency weak, and shipping one the OS also has is harmless: the
+# rpath order lets the OS copy win where the OS has one.
+rpath_dependencies() {
+    otool -L "$1" | awk '$1 ~ /^@rpath\// { sub(/^@rpath\//, "", $1); print $1 }'
+}
+# "version_le a b" is true when a is at most b, component by component. BSD
+# sort has no version order to borrow, and a minos is never a single number.
+version_le() {
+    awk -v a="$1" -v b="$2" 'BEGIN {
+        split(a, x, "."); split(b, y, ".")
+        for (i = 1; i <= 3; i++) {
+            if (x[i] + 0 < y[i] + 0) exit 0
+            if (x[i] + 0 > y[i] + 0) exit 1
+        }
+        exit 0
+    }'
+}
+# The toolchain's back-deployment copy of a library for one floor: the newest
+# of the versioned copies that still loads there. The current copy in
+# iphoneos/ needs the current OS, so the floor comparison rules it out.
+back_deployment_source() {
+    local library="$1" floor="$2" candidate candidate_os best="" best_os=""
     shopt -s nullglob
-    candidates=("$swift_toolchain_lib"/swift-*/iphoneos/"$library")
+    for candidate in "$swift_toolchain_lib"/swift-*/iphoneos/"$library" "$swift_toolchain_lib"/iphoneos/"$library"; do
+        candidate_os="$(macho_min_os "$candidate")"
+        [[ -n "$candidate_os" ]] || continue
+        version_le "$candidate_os" "$floor" || continue
+        if [[ -z "$best_os" ]] || version_le "$best_os" "$candidate_os"; then
+            best="$candidate"
+            best_os="$candidate_os"
+        fi
+    done
     shopt -u nullglob
-    [[ "${#candidates[@]}" -eq 1 ]] || {
-        echo "error: expected exactly one $library in the toolchain's back-deployment folders, found ${#candidates[@]}" >&2
+    [[ -n "$best" ]] || return 1
+    printf '%s\n' "$best"
+}
+deployment_floor="$(macho_min_os "$daemon_binary")"
+[[ -n "$deployment_floor" ]] || { echo "error: cannot read the deployment floor of $daemon_binary" >&2; exit 66; }
+declared_libraries=()
+for tool in "$daemon_binary" "$workers_dir"/${workers[@]}; do
+    while IFS= read -r library; do
+        [[ -n "$library" ]] || continue
+        declared_libraries+=("$library")
+    done < <(rpath_dependencies "$tool")
+done
+runtime_library_sources=()
+for library in $(printf '%s\n' ${declared_libraries[@]+"${declared_libraries[@]}"} | sort -u); do
+    source_library="$(back_deployment_source "$library" "$deployment_floor")" || {
+        # No back-deployment copy: the only honest answer left is that every OS
+        # from the floor up carries the library in /usr/lib/swift, which is a
+        # claim this repository has to make in words —
+        # FLOOR_LIBRARIES in Scripts/check-rpath-dependencies.py.
+        echo "error: $library is linked by @rpath but the toolchain ships no copy for the floor $deployment_floor; if every OS from the floor has it in /usr/lib/swift, list it in FLOOR_LIBRARIES in Scripts/check-rpath-dependencies.py" >&2
         exit 66
     }
-    printf '%s\n' "${candidates[0]}"
-}
-runtime_library_sources=()
-for library in "${worker_runtime_libraries[@]}"; do
-    source_library="$(runtime_library_source "$library")"
-    [[ "$(otool -D "$source_library" | tail -n 1)" == "/usr/lib/swift/$library" ]] || {
-        echo "error: $source_library is not installed as /usr/lib/swift/$library" >&2
+    install_name="$(otool -D "$source_library" | tail -n 1)"
+    [[ "$install_name" == "/usr/lib/swift/$library" || "$install_name" == "@rpath/$library" ]] || {
+        echo "error: $source_library is not installed as /usr/lib/swift/$library or @rpath/$library, but as $install_name" >&2
         exit 65
     }
+    worker_runtime_libraries+=("$library")
     runtime_library_sources+=("$source_library")
 done
 [[ "$output_deb" == *.deb ]] || { echo "error: output must end in .deb" >&2; exit 64; }

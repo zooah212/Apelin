@@ -633,7 +633,7 @@
 				A20000000000000000000001 /* XCRemoteSwiftPackageReference "DisplayLink" */,
 				A20000000000000000000002 /* XCRemoteSwiftPackageReference "ListViewKit" */,
 				A20000000000000000000003 /* XCRemoteSwiftPackageReference "Litext" */,
-				A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */,
+				A20000000000000000000004 /* XCLocalSwiftPackageReference "Packages/MarkdownView" */,
 				A20000000000000000000006 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
 				A30000000000000000000001 /* XCRemoteSwiftPackageReference "SPIndicator" */,
 				A30000000000000000000002 /* XCRemoteSwiftPackageReference "AlertController" */,
@@ -1186,6 +1186,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/ApelinToolHost;
 		};
+		A20000000000000000000004 /* XCLocalSwiftPackageReference "Packages/MarkdownView" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MarkdownView;
+		};
 		A20000000000000000000007 /* XCLocalSwiftPackageReference "Packages/Runestone" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Runestone;
@@ -1215,14 +1219,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 3.6.5;
-			};
-		};
-		A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Lakr233/MarkdownView";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.8.5;
 			};
 		};
 		A20000000000000000000006 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {
@@ -1444,12 +1440,12 @@
 		};
 		A20000000000000000000150 /* MarkdownView */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */;
+			package = A20000000000000000000004 /* XCLocalSwiftPackageReference "Packages/MarkdownView" */;
 			productName = MarkdownView;
 		};
 		A20000000000000000000160 /* MarkdownParser */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */;
+			package = A20000000000000000000004 /* XCLocalSwiftPackageReference "Packages/MarkdownView" */;
 			productName = MarkdownParser;
 		};
 		A20000000000000000000170 /* Runestone */ = {

@@ -3,7 +3,7 @@
 The file formats Apelin reads and writes on the device: Mach-O images, and
 Debian binary packages in both directions. Every API is synchronous and
 throwing; nothing spawns a process, imports UIKit or knows where the
-bootstrap is installed. iOS 16 and macOS 13; `swift test` runs everything on
+bootstrap is installed. iOS 15 and macOS 13; `swift test` runs everything on
 a Mac.
 
 | Product            | What it is                                                        | Dependencies |

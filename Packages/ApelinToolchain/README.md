@@ -2,7 +2,7 @@
 
 Device-side CLT acquisition and adaptation for the mobile `apelin-environment`
 worker. This standalone SwiftPM package does not link into `apelind` and does
-not change the app project. Requires iOS 16+; macOS is a host-test platform.
+not change the app project. Requires iOS 15+; macOS is a host-test platform.
 There are no third-party package dependencies. Foundation, CryptoKit,
 Compression and system zlib provide networking, hashing and decompression.
 The one package dependency is local: `../ApelinFormats`, for `ApelinCodeSign`
@@ -141,7 +141,7 @@ Both tested vphones pass the base-language matrix with 27.0; the iOS 26.6.2
 iPhone vphone with every other reviewed release. Setup peak RSS is measured
 in the linked report; bounded autorelease pools release Foundation file buffers
 between chunks and images. A successful vphone run does not establish rootless,
-real-device or iOS 16 compatibility.
+real-device or iOS 15 compatibility.
 
 Host verification:
 

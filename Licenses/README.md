@@ -38,11 +38,15 @@ code that does not ship.
 The app's dependencies (owner, 2026-10-17): DisplayLink, ListViewKit,
 Litext, MarkdownView (with SwiftMath, swift-cmark, LRUCache and
 swift-collections), libghostty-spm, and Runestone, vendored from source in
-`Packages/Runestone` with only the grammars Apelin highlights. Runestone's
-notices have folders here, each the same text as the `LICENSE` beside the
-vendored source (`make check` compares them): `Runestone`, `tree-sitter`
+`Packages/Runestone` with only the grammars Apelin highlights, and
+MarkdownView, vendored in `Packages/MarkdownView` — upstream's
+`Sources/MarkdownView` and `Sources/MarkdownParser` as released, kept
+because its package demands iOS 16 and Apelin's floor is 15. Runestone's
+and MarkdownView's notices have folders here, each the same text as the
+`LICENSE` beside the vendored source (`make check` compares them): in
+Runestone's case `Runestone`, `tree-sitter`
 (the runtime), `TreeSitterLanguages` (the queries) and one
-`tree-sitter-<language>` per grammar. libghostty ships a prebuilt static
+`tree-sitter-<language>` per grammar, and one `MarkdownView` folder. libghostty ships a prebuilt static
 binary whose wrapper's LICENSE covers only the packaging, so what it holds
 has folders here too: libghostty holds `ghostty` and one `ghostty-<component>` per library
 compiled into libghostty.a (FreeType under the FTL, Oniguruma, libpng,

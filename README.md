@@ -4,7 +4,7 @@
 
 ## Write. Build. Install. On the device.
 
-Apelin is an IDE for iPhone and iPad running custom firmware on iOS and iPadOS 16 or later. Its agent writes, builds, installs and debugs tweaks, apps, command-line tools and preference bundles on the device itself, with no Mac needed. It works with both rootless and roothide bootstraps.
+Apelin is an IDE for iPhone and iPad running custom firmware on iOS and iPadOS 15 or later. Its agent writes, builds, installs and debugs tweaks, apps, command-line tools and preference bundles on the device itself, with no Mac needed. It works with both rootless and roothide bootstraps.
 
 ![Preview](Documents/screenshots.jpg)
 

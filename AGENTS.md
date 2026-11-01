@@ -1,7 +1,7 @@
 # Apelin — Agent Notes
 
 An on-device IDE where an agent writes, builds and installs tweaks, for
-jailbroken iOS 16.0+ — roothide and rootless bootstraps both. **iOS only**: there is no Mac Catalyst build and no
+jailbroken iOS 15.0+ — roothide and rootless bootstraps both. **iOS only**: there is no Mac Catalyst build and no
 macOS product. The app runs as `mobile`; with the privileged backend, the
 bundled `apelind` LaunchDaemon does the privileged half as root. Without that
 backend, the app still works under its own OS permissions.
@@ -163,7 +163,11 @@ the same executable in session mode; the workers are its children.
   roothide, nothing for rootless). `Scripts/check-launchd-paths.py` fails
   `make check` on a bare one; a plist without such keys needs neither.
 - **Versions and the deployment target live in `Configuration/*.xcconfig`
-  only.** `make check` rejects either in `project.pbxproj`.
+  only.** `make check` rejects either in `project.pbxproj`. The floor is one
+  decision in one file, and every local package's `platforms:` says the same
+  number: `Scripts/check-package-platforms.py` fails a package that declares
+  another, because a lowered floor otherwise leaves a package behind, and its
+  stale higher number is what a reader believes.
 - **No project generators.** `project.pbxproj` is hand-written; `objectVersion`
   is pinned and `make check` fails when Xcode rewrites it.
 - **Name no specific package manager.** README, these notes and script
@@ -1848,7 +1852,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   project's bound toolchain, else the registry's default, first on `PATH`
   (also `APELIN_TOOLCHAIN_BIN`), and `SDKROOT` — the project's bound SDK,
   else the newest registered one that toolchain reads, what `projectCreate`
-  binds — with `IPHONEOS_DEPLOYMENT_TARGET` (the project's, else 16.0), so
+  binds — with `IPHONEOS_DEPLOYMENT_TARGET` (the project's, else 15.0), so
   clang targets iOS against the SDK without flags; a temporary chat gets
   the defaults. The host reads `Environment/Toolchains/registry.json`,
   `SDKs/.registry/` and `apelin-project.json` as root only inside the data
@@ -2258,7 +2262,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   file (BoringSSL in swift-nio-ssl) or kept under a name the collector does
   not walk (icli's ios-mcp notice) gets a `Licenses/<name>/` folder. So does
   vendored source: Runestone (`Runestone`, `tree-sitter`,
-  `TreeSitterLanguages`, one `tree-sitter-<language>` per grammar), each
+  `TreeSitterLanguages`, one `tree-sitter-<language>` per grammar) and
+  MarkdownView (`MarkdownView`), each
   folder the same text as the `LICENSE` beside the source, which `make
   check` compares. So does every component inside a prebuilt binary the
   app links, found by reading the binary rather than trusting its
@@ -2280,6 +2285,16 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   shares. Everything is static, so nothing new is a dylib. The one
   `@rpath` library the app gains is `libswiftCompatibilitySpan.dylib`,
   which Xcode embeds in `Apelin.app/Frameworks/`.
+- **MarkdownView is vendored for the floor** (owner, 2026-11-01, the floor
+  lowered to iOS 15.0): `Packages/MarkdownView` is Lakr233/MarkdownView 4.8.5
+  from source, because upstream's `Package.swift` declares `.iOS(.v16)`. The
+  sources are unchanged — the one 16.0-only API in them
+  (`automaticallyAdjustsContentInsets`) sits in an AppKit branch an iOS build
+  never compiles — and only the manifest is rewritten (two libraries, the same
+  five dependencies, no watchOS target, no benchmark or catalog app).
+  `Licenses/MarkdownView` carries its MIT text, `Packages/MarkdownView/README.md`
+  says what was audited, and the app links the local package the way it links
+  Runestone.
 - **Runestone is vendored and trimmed** (owner, 2026-10-17, the way Irisin
   does it): `Packages/Runestone` is simonbs/Runestone 0.5.2 from source,
   from Irisin's copy (the Xcode 27 `TreeSitter.h` fix, typed pointers,
@@ -2702,7 +2717,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   to `local.apelin.<name as a slug>`, an `identifier` parameter named
   `productName` to the name's words joined and capitalised (`I3 Chain Tweak`
   → `I3ChainTweak`, so two projects never install the same file),
-  `deploymentTarget` to 16.0,
+  `deploymentTarget` to 15.0,
   `architectures` to the manifest's, toolchain and SDK to the registry's
   defaults. The answer carries `descriptionDigests` {build, packaging},
   which the session host's approval ledger records as the template baseline
@@ -3154,6 +3169,9 @@ Packages/<Other>/        standalone packages the workers link (ApelinToolchain,
                          ApelinFormats, ApelinDiagnostics, ApelinAgent, ApelinToolHost)
 Packages/Runestone/      the editor's text view and grammars, vendored and trimmed
                          (README.md: origins, changes, adding a language); the app only
+Packages/MarkdownView/   the chat's Markdown renderer, vendored for the iOS 15 floor
+                         (README.md: the audit that let its sources stay unchanged);
+                         the app only
 Shared/                  compiled into the app and apelind: the XPC side of the wire
                          (Protocol/: AppProtocol, AppXPC, XPCEnvelope), the XPC constant
                          shim (XPCShim/, a C module), RoothideRoot
@@ -3305,12 +3323,14 @@ adding a dated record beside it.
 - **A back-deployed Swift library beside a tool.** apelin-agent links
   `@rpath/libswiftCompatibilitySpan.dylib` (Swift 6.2's `Span`
   back-deployment library), and its only rpath was `/usr/lib/swift`. iOS 26 has
-  the library there; iOS 16–18 do not, and dyld would kill the worker before
+  the library there; every OS from 15 up to 25 does not, and dyld would kill the worker before
   `main`. Xcode embeds such a library into an app's `Frameworks/` only, never
   beside a command-line tool. Every worker target's rpaths are now
   `/usr/lib/swift`, then `@executable_path`, so the OS copy wins where it
-  exists. The packager installs the toolchain's copy
-  (`swift-*/iphoneos/`, install name `/usr/lib/swift/…`) in
+  exists. The packager reads every `@rpath` dependency off the built daemon and
+  workers — which libraries those are follows from the floor, so none is named
+  in the script — installs the newest toolchain copy whose own minimum OS still
+  loads on the floor (`swift-*/iphoneos/`, install name `/usr/lib/swift/…`) in
   `usr/libexec/apelin/`, re-signed with ldid like the rest
   (`worker_runtime_libraries` in `Scripts/package-deb.sh`).
   `Scripts/check-rpath-dependencies.py` then fails the package on any shipped
@@ -3367,7 +3387,7 @@ adding a dated record beside it.
   swift-nio to `2.98.0..<2.104.0` through a product dependency, so the app's
   and the package's `Package.resolved` both pin 2.103.0. Stay below 2.104.0
   until NIO's noncopyable conformances work on the deployment floor, and
-  check again on an iOS 16 or 17 device before raising it.
+  check again on an iOS 15, 16 or 17 device before raising it.
 - **CLT 15.0's linker bound arm64e without pointer authentication.** Given
   `-undefined dynamic_lookup` (or `suppress`), its ld writes an arm64e
   slice's fixups as plain dyld opcodes, not chained fixups: the signature
@@ -4119,11 +4139,11 @@ fragment. The chat's ListViewKit keeps its own update mechanism.
   restarts — a respring or a reboot; the app's reloads cannot fix it. Seen on
   the iPad vphone, 2026-10-22; the hooks do not restart chronod (they manage
   the daemon only).
-- **The floor.** The extension deploys to 16.0 with the app, because a
+- **The floor.** The extension deploys to 15.0 with the app, because a
   jailbreak install registers it whatever its minimum OS says. The home
-  screen widget runs from 16.0; the Live Activity from 16.2 (`ActivityContent`,
+  screen widget has run since iOS 14; the Live Activity from 16.2 (`ActivityContent`,
   as iGhostVT's), with `-weak_framework ActivityKit` on the app and the
-  extension so 16.0 and 16.1 load them; `containerBackground` from 17, the
+  extension so 15.0 through 16.1 load them; `containerBackground` from 17, the
   view's own padding before. The packager requires exactly this appex in
   `PlugIns/` with the app's versions, strips it, greps it for build paths,
   signs it with `Packaging/ApelinWidgets.entitlements` and reads them back;

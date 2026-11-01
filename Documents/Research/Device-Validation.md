@@ -34,7 +34,7 @@ Packages under test: Apelin (`make deb-roothide`), the app, CLI and tweak
 development extensions (`make deb-extensions`) and the agent tools
 (`make deb-agent-tools`). The preference bundle extension depends on
 preferenceloader, which no vphone has. Nothing here is a result for
-rootless, real hardware, the iOS 16 floor, or the iPad's sidebar layout.
+rootless, real hardware, the iOS 15 floor, or the iPad's sidebar layout.
 
 ## Current results
 
@@ -774,8 +774,8 @@ console now goes on after a restart only past a successful respring.
       run on an iPhone 15 Pro and an A12Z iPad on 2026-10-21 (▸ Real
       devices below); the project chain did not, as neither has the
       development extensions installed.
-- [ ] The iOS 16.0 floor (oldest supported system).
-- [ ] On iOS 16, 17 or 18: an agent session starts (`agentList`, then
+- [ ] The iOS 15.0 floor (oldest supported system).
+- [ ] On iOS 15, 16, 17 or 18: an agent session starts (`agentList`, then
       `agentOpen`). apelin-agent links `@rpath/libswiftCompatibilitySpan.dylib`.
       The OS has that library only from iOS 26, so on older systems it loads
       the copy the package installs in `usr/libexec/apelin/`, through the

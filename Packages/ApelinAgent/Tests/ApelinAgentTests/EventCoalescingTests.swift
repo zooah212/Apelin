@@ -91,15 +91,14 @@ struct EventCoalescingTests {
             credentials: DeliveredCredentialSource(),
         )
         let stream = try await session.events(afterSeq: 0)
-        let clock = ContinuousClock()
-        let started = clock.now
+        let started = Date()
         try await session.prompt("Explain it at length.")
         for await record in stream {
             if case .finished = record.event {
                 break
             }
         }
-        let streamed = clock.now - started
+        let streamed = Date().timeIntervalSince(started)
         await session.waitForIdle()
         let records = try await session.log.records(afterSeq: 0)
         await session.close()

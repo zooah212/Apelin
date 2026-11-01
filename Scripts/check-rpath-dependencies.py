@@ -13,9 +13,9 @@ installed beside them), every strong `@rpath/<name>` dependency has to resolve:
 dyld tries the rpaths in order and kills the process before `main` when none
 holds the file, and only on the device that lacks it: apelin-agent once
 linked `@rpath/libswiftCompatibilitySpan.dylib` with `/usr/lib/swift` as its
-only rpath, which iOS 26 satisfies and iOS 16–18 do not. A weak dependency
-is allowed to be missing. `@executable_path/…` and `@loader_path/…`
-dependencies are checked the same way.
+only rpath, which iOS 26 satisfies and every OS from iOS 15 up to 25 does not.
+A weak dependency is allowed to be missing. `@executable_path/…` and
+`@loader_path/…` dependencies are checked the same way.
 
 Usage: check-rpath-dependencies.py <package root> <install prefix>
 """
@@ -28,7 +28,9 @@ import sys
 # IPHONEOS_DEPLOYMENT_TARGET up, for an @rpath dependency to count as
 # satisfied without a copy in the package. A back-deployed Swift runtime
 # library (libswiftCompatibilitySpan.dylib is in the OS from iOS 26) is never
-# here: it ships in the package, after the OS's copy in the rpath order.
+# here: Scripts/package-deb.sh reads every @rpath dependency off the built
+# command-line tools and ships the toolchain's copy of each beside them,
+# after the OS's copy in the rpath order.
 FLOOR_LIBRARIES = {
     # "/usr/lib/swift": {"libswiftExample.dylib"},
 }

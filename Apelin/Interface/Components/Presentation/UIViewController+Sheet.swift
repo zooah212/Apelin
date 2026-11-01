@@ -26,10 +26,15 @@ extension UIViewController {
         if window.horizontalSizeClass == .compact, usesDetents {
             viewController.sheetPresentationController?.do {
                 $0.detents = [.large()]
-                $0.prefersGrabberVisible = true
-                $0.prefersScrollingExpandsWhenScrolledToEdge = true
-                $0.prefersEdgeAttachedInCompactHeight = true
-                $0.widthFollowsPreferredContentSizeWhenEdgeAttached = true
+                // The grabber, the edge attachment and the expand-on-scroll
+                // rule are 16.0; on 15 the sheet keeps the system's own
+                // large detent and its own scroll behaviour.
+                if #available(iOS 16.0, *) {
+                    $0.prefersGrabberVisible = true
+                    $0.prefersScrollingExpandsWhenScrolledToEdge = true
+                    $0.prefersEdgeAttachedInCompactHeight = true
+                    $0.widthFollowsPreferredContentSizeWhenEdgeAttached = true
+                }
             }
         } else if presentingViewController == nil {
             // Fila's and Irisin's card. Set on what is presented — the

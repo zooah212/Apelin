@@ -85,7 +85,7 @@ platformize-app-ios's; the quoted name is its section.
       `Packaging/<App>.entitlements`.
       **Done:** Present: every ad-hoc app needs it (IconServices, Bold Text), and the terminal will draw with Metal.
 - [x] `control` depends on `firmware (>= <floor>)`, `uikittools` and `launchctl`; no hook calls `uicache`; `postinst` boots out system, user/501 and gui/501.
-      **Done:** `firmware (>= 16.0), uikittools, launchctl`; no `uicache` in hooks; three bootouts. All enforced by `make check`.
+      **Done:** `firmware (>= 15.0), uikittools, launchctl`; no `uicache` in hooks; three bootouts. All enforced by `make check`.
 - [x] `postinst` makes `/var/mobile/Documents/<bundle id>` level by level for mobile (no `mkdir -p` as root, no symlink followed), and the app keeps its files in that folder, never loose in `Documents`.
       `Packaging/DEBIAN/`; SKILL.md "The contract".
       **Done:** Template postinst unchanged; verified on the vphone (mobile owns `Documents` and `wiki.qaq.apelin`).
@@ -94,7 +94,7 @@ platformize-app-ios's; the quoted name is its section.
       **Done:** Versions and floor in xcconfig only (`make check`); objectVersion 77; build number passed on the xcodebuild line (Irisin style).
 - [x] The floor is chosen; `check-symbol-availability.py` is in `Scripts/` and wired in; XPC constants are read through `Shared/XPCShim` only.
       SKILL.md "The deployment floor is not what you set".
-      **Done:** Floor 16.0 (MarkdownView); `check-symbol-availability.py` gates `check`; XPC through `AppXPC`. `audit-ios-floor.sh` gated `deb` until 2026-10-21, when the owner removed it: the floor is proven on a device (`Documents/Research/Device-Validation.md`).
+      **Done:** Floor 15.0, the owner's decision of 2026-11-01 that lowered it from 16.0; `check-symbol-availability.py` gates `check`; XPC through `AppXPC`. `audit-ios-floor.sh` gated `deb` until 2026-10-21, when the owner removed it: the floor is proven on a device (`Documents/Research/Device-Validation.md`). MarkdownView was the one dependency in the way — its `Package.swift` declares iOS 16 — so it is vendored in `Packages/MarkdownView` (4.8.5, whose only 16.0 API sits in an AppKit branch iOS never compiles) rather than raising the floor or patching upstream's source.
 - [x] The packager ad-hoc signs every embedded library, re-reads entitlements from the signed binaries, and greps every binary for the build path.
       SKILL.md "The contract".
       **Done:** `package-deb.sh` signs every Frameworks dylib/framework, re-reads app and daemon entitlements, greps every binary.

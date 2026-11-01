@@ -109,7 +109,8 @@ final class DevelopmentEnvironmentTests: XCTestCase {
         let unbound = DevelopmentEnvironment.prepared(home: home.path, projectDirectory: project)
         XCTAssertEqual(unbound.toolchain?.record.id, old.id)
         XCTAssertEqual(unbound.sdk?.record.id, "iphoneos18.5-aaaa")
-        XCTAssertEqual(unbound.deploymentTarget, "16.0")
+        XCTAssertEqual(unbound.deploymentTarget, DevelopmentEnvironment.defaultDeploymentTarget,
+                       "a deployment target that is not a version is not passed on, and '16.0;x' is not the default")
     }
 
     func testAToolchainWhoseFolderIsGoneIsPassedOverAndTheCLTLayoutIsFound() throws {

@@ -1,7 +1,7 @@
 # ApelinDiagnostics
 
 Milestone 1 plan §8 (respring and confirming a load) and §9 (debugging), as a
-standalone Swift package. iOS 16 and macOS 13; everything but the IcliKit
+standalone Swift package. iOS 15 and macOS 13; everything but the IcliKit
 link builds and tests on a Mac:
 
 ```sh

@@ -66,6 +66,7 @@ TRANSLATIONS_CHECK := $(ROOT_DIR)/Scripts/check-translations.py
 CATALOG_KEYS_CHECK := $(ROOT_DIR)/Scripts/check-catalog-keys.py
 SHELL_DELETES_CHECK := $(ROOT_DIR)/Scripts/check-shell-deletes.py
 SYMBOL_CHECK        := $(ROOT_DIR)/Scripts/check-symbol-availability.py
+PACKAGE_FLOOR_CHECK := $(ROOT_DIR)/Scripts/check-package-platforms.py
 RPATH_CHECK         := $(ROOT_DIR)/Scripts/check-rpath-dependencies.py
 # The device harness: console scripts and suites on a vphone or a device,
 # from the Mac (Documents/Console.md ▸ From the Mac).
@@ -95,6 +96,8 @@ SWIFTPM_SCRATCH     ?= $(APELINKIT)/.build
 TOOLHOST            := $(ROOT_DIR)/Packages/ApelinToolHost
 # The editor's text view and grammars, vendored (Packages/Runestone/README.md).
 RUNESTONE           := $(ROOT_DIR)/Packages/Runestone
+# The chat transcript's Markdown view, vendored (Packages/MarkdownView/README.md).
+MARKDOWNVIEW        := $(ROOT_DIR)/Packages/MarkdownView
 TOOLHOST_SCRATCH    ?= $(call package_scratch,ApelinToolHost)
 IRISIN_SHIM_DIR     := $(ROOT_DIR)/Apelind/Vendor/IrisinExternalClient/CIrisinExternalXPC
 # Every other standalone package under Packages/ (ApelinFormats,
@@ -102,8 +105,9 @@ IRISIN_SHIM_DIR     := $(ROOT_DIR)/Apelind/Vendor/IrisinExternalClient/CIrisinEx
 # its tests run by `make harness` too, each in a scratch path of its own:
 # its own .build by default, or <SWIFTPM_SCRATCH>-<name> when SWIFTPM_SCRATCH
 # is given. Live and network tests stay off unless their variable is set.
-# Runestone is UIKit and has no Mac build, so the harness skips it.
-HARNESS_PACKAGES    := $(filter-out ApelinKit Runestone,$(notdir $(patsubst %/Package.swift,%,$(wildcard $(ROOT_DIR)/Packages/*/Package.swift))))
+# Runestone and MarkdownView are UIKit and have no Mac build, so the harness
+# skips them.
+HARNESS_PACKAGES    := $(filter-out ApelinKit Runestone MarkdownView,$(notdir $(patsubst %/Package.swift,%,$(wildcard $(ROOT_DIR)/Packages/*/Package.swift))))
 ifeq ($(origin SWIFTPM_SCRATCH),file)
 package_scratch      = $(ROOT_DIR)/Packages/$(1)/.build
 else
@@ -249,7 +253,7 @@ check:
 	@for script in "$(DEB_PACKAGER)" "$(DEVICE_INSTALLER)" "$(VERSION_APPLIER)" "$(XCODEBUILD_WRAPPER)" \
 		"$(LICENSE_COLLECTOR)" "$(ACCESSIBILITY_CHECK)" "$(STALE_STRINGS_CHECK)" "$(FORMAT_STRINGS_CHECK)" "$(TRANSLATIONS_CHECK)" \
 		"$(CATALOG_KEYS_CHECK)" "$(SHELL_DELETES_CHECK)" \
-		"$(SYMBOL_CHECK)" "$(RPATH_CHECK)" "$(SCHEMA_FIXTURES_CHECK)" "$(TEMPLATES_CHECK)" \
+		"$(SYMBOL_CHECK)" "$(PACKAGE_FLOOR_CHECK)" "$(RPATH_CHECK)" "$(SCHEMA_FIXTURES_CHECK)" "$(TEMPLATES_CHECK)" \
 		"$(EXTENSIONS_PACKAGER)" "$(AGENT_TOOLS_BUILDER)" "$(DEVICE_TOOL)"; do \
 		test -x "$$script" || { echo "error: $${script#$(ROOT_DIR)/} is not executable" >&2; exit 66; }; \
 	done
@@ -266,13 +270,14 @@ check:
 	@grep -qF 'collect-licenses.py' "$(PROJECT)/project.pbxproj" \
 		|| { echo "error: the Collect Licenses build phase is missing from the Apelin target — Settings ▸ About ▸ Licenses would be empty" >&2; exit 65; }
 	@test -f "$(ROOT_DIR)/Licenses/review.json" || { echo "error: Licenses/review.json is missing" >&2; exit 66; }
-	@# Runestone is vendored source: the runtime and each grammar keep their
-	@# upstream LICENSE beside them, and every LICENSE in the package has the
-	@# same text in a Licenses/ folder, which the Licenses screen is built from.
+	@# Runestone and MarkdownView are vendored source: the runtime and each
+	@# grammar keep their upstream LICENSE beside them, and every LICENSE in
+	@# the packages has the same text in a Licenses/ folder, which the
+	@# Licenses screen is built from.
 	@for grammar in "$(RUNESTONE)"/Sources/TreeSitter*/; do \
 		test -f "$$grammar/LICENSE" || { echo "error: $${grammar#$(ROOT_DIR)/} has no LICENSE beside it" >&2; exit 65; }; \
 	done
-	@for license in "$(RUNESTONE)/LICENSE" "$(RUNESTONE)"/Sources/*/LICENSE; do \
+	@for license in "$(RUNESTONE)/LICENSE" "$(RUNESTONE)"/Sources/*/LICENSE "$(MARKDOWNVIEW)/LICENSE"; do \
 		found=; for notice in "$(ROOT_DIR)"/Licenses/*/LICENSE; do cmp -s "$$license" "$$notice" && { found=1; break; }; done; \
 		[[ -n "$$found" ]] || { echo "error: $${license#$(ROOT_DIR)/} has no copy in Licenses/<name>/LICENSE — the Licenses screen would miss it" >&2; exit 65; }; \
 	done
@@ -389,6 +394,9 @@ check:
 	@"$(FORMAT_STRINGS_CHECK)" "$(ROOT_DIR)/Apelin" "$(ROOT_DIR)/Widgets"
 	@"$(TRANSLATIONS_CHECK)" "$(ROOT_DIR)/Apelin" "$(ROOT_DIR)/Widgets"
 	@"$(SYMBOL_CHECK)" "$(IOS_DEPLOYMENT_FLOOR)" $(SOURCE_ROOTS)
+	@# The floor is one decision in one file; every package's own `platforms:`
+	@# has to say the same number, or a lowering leaves a package behind.
+	@"$(PACKAGE_FLOOR_CHECK)" "$(IOS_DEPLOYMENT_FLOOR)" "$(ROOT_DIR)"
 	@# An empty variable in a removed path removes from /, the bootstrap's
 	@# root on roothide: every recursive rm checks its variables with :?.
 	@"$(SHELL_DELETES_CHECK)" "$(ROOT_DIR)"
