@@ -17,12 +17,14 @@ installed or downloadable one. The existing on-device self-test still checks
 that an installation works; incompatible CPU instructions are rejected before
 starting a compiler.
 
-## CPU Coverage from iOS and iPadOS 16
+## CPU Coverage from iOS and iPadOS 15
 
-The oldest supported **iPhone** CPU is A11. The oldest supported **iPad** CPUs
-are A9/A9X; iPadOS 16 still supports the fifth-generation iPad and the first
-iPad Pro. The following groups therefore cover the entire supported floor,
-including chips that cannot run an unmodified Apple Silicon compiler.
+The oldest supported **iPhone** CPU is A9: the app's floor of iOS 15 still runs
+on the iPhone 6s and 7, where iOS 16 cut off at A11. The oldest supported
+**iPad** CPUs are A9/A9X; iPadOS 15 and iPadOS 16 both support the
+fifth-generation iPad and the first iPad Pro. The following groups therefore
+cover the entire supported floor, including chips that cannot run an unmodified
+Apple Silicon compiler.
 
 | CPU family | Relevant features | Available Apple CLT base component | Swift CPU compatibility |
 |---|---|---|---|

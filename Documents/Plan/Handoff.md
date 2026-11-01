@@ -242,7 +242,7 @@ script passed on the iOS 26.4 and iOS 27.0.1 roothide iPhone vphones,
 including the whole chain (toolchain setup, SDK, project, build, install
 through irisind, respring, load confirmed by its marker) and resume after a
 killed session host. The Mac harness covers the rest (`make harness`).
-Nothing has run on rootless, real hardware, iOS 16 or an iPad; the agent
+Nothing has run on rootless, real hardware, iOS 15, iOS 16 or an iPad; the agent
 has only been run up to its refusals (no credential on the devices). The
 owner-device checklist is at the end of that record.
 
@@ -256,7 +256,7 @@ owner-device checklist is at the end of that record.
    approval, abort and steer; Copilot and Anthropic still need their
    credential dropped in `~/Documents/wiki.qaq.apelin/console/inbox/credentials/`
    on a device.
-3. **The owner's devices**: rootless, real hardware, iOS 16, iPad, the
+3. **The owner's devices**: rootless, real hardware, iOS 15, iOS 16, iPad, the
    Swift toolchain component (refused today), slow network, HTTPS SDK
    sources.
 4. **The image list is never read** and cannot be: it panicked the iOS 27
